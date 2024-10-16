@@ -42,15 +42,23 @@
             <form class="col-md-4 offset-md-4" th:action="@{/save}" method="post">
                 <div class="mb-3">
                     <label for="name" class="form-label">Name</label>
-                    <input type="text" class="form-control" name="name">
+                    <input type="text" class="form-control" name="name" id="name" oninput="validateText(this)">
                 </div>
                 <div class="mb-3">
                     <label for="author" class="form-label">Author</label>
-                    <input type="text" class="form-control" name="author">
+                    <input type="text" class="form-control" name="author" id="author" oninput="validateText(this)">
                 </div>
+                
+                <script>
+                    function validateText(input) {
+                        // Allow only alphabetic characters and spaces
+                        input.value = input.value.replace(/[^a-zA-Z\s]/g, '');
+                    }
+                </script>
+                
                 <div class="mb-3">
                     <label for="price" class="form-label">Price</label>
-                    <input type="text" class="form-control" name="price">
+                    <input type="number" class="form-control" name="price" id="price" step="0.01" min="0">
                 </div>
                 <center><button type="submit" class="btn btn-primary">Submit</button></center>
             </form>

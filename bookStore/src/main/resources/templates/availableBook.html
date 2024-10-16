@@ -11,6 +11,7 @@
         integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
 
     <title>Book Available in Store</title>
+    <script src="https://kit.fontawesome.com/0faddc1af8.js" crossorigin="anonymous"></script>
 </head>
 
 <body>
@@ -54,17 +55,29 @@
                 </tr>
             </thead>
             <tbody>
-                <tr th:each="books :${book}">
+                <tr th:each="books : ${book}">
                     <td th:text="${books.id}"></td>
                     <td th:text="${books.name}"></td>
                     <td th:text="${books.author}"></td>
                     <td th:text="${books.price}"></td>
-                    <td><a class="btn btn-secondary btn-sm">Add to My Book</a></td>
+                    <td>
+                        <!-- Add to My Book button -->
+                        <a class="btn btn-secondary btn-sm" 
+                           th:href="@{/myList/{id}(id=${books.id})}">Add to My Book</a>
+                    
+                        <!-- Edit Book button -->
+                        <a style="color: blue;" 
+                           th:href="@{/editBook/{id}(id=${books.id})}"><i class="fa-solid fa-pen-to-square ms-4"></i></a>
+                    
+                        <!-- Delete button (no action defined yet) -->
+                        <a style="color: red;">
+                            <i class="fa-solid fa-trash ms-4"></i>
+                        </a>
+                    </td>
                 </tr>
             </tbody>
         </table>
     </div>
-
 
 </body>
 
