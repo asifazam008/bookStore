@@ -36,6 +36,24 @@
                 </div>
             </div>
         </nav>
-        <h1>Book Register</h1>
+        
+        <div class="container my-5 p-5" style="border:1px solid black;">
+            <h4 class="text-center">New Book Register</h4>
+            <form class="col-md-4 offset-md-4" th:action="@{/save}" method="post">
+                <div class="mb-3">
+                    <label for="name" class="form-label">Name</label>
+                    <input type="text" class="form-control" name="name">
+                </div>
+                <div class="mb-3">
+                    <label for="author" class="form-label">Author</label>
+                    <input type="text" class="form-control" name="author">
+                </div>
+                <div class="mb-3">
+                    <label for="price" class="form-label">Price</label>
+                    <input type="text" class="form-control" name="price">
+                </div>
+                <center><button type="submit" class="btn btn-primary">Submit</button></center>
+            </form>
+        </div>
     </body>
 </html>
