@@ -14,56 +14,56 @@ import com.bookStore.service.*;
 
 @Controller
 public class BookController {
-	
-	@Autowired
-	private BookService bookService;
 
-	@Autowired
-	private MyBookListService bookListService;
-	
+    @Autowired
+    private BookService bookService;
+
+    @Autowired
+    private MyBookListService bookListService;
+
     @GetMapping("/home")
-    public String home(){
+    public String home() {
         return "home";
     }
-    
+
     @GetMapping("/book_register")
     public String bookRegister() {
-    	return "bookRegister";
+        return "bookRegister";
     }
-    
+
     @GetMapping("/available_book")
     public ModelAndView availableBook() {
-    	List<Books> list = bookService.getAllBook();
-    	return new ModelAndView("availableBook","book",list);
+        List<Books> list = bookService.getAllBook();
+        return new ModelAndView("availableBook", "book", list);
     }
-    
+
     @PostMapping("/save")
     public String addBook(@ModelAttribute Books books) {
-    	bookService.save(books);
-    	return "redirect:/available_books";
+        bookService.save(books);
+        return "redirect:/available_books";
     }
 
     @GetMapping("/my_book")
     public String getMyBooks(Model model) {
-    	List<MyBookList> list = bookListService.getAllBooks();
-    	model.addAttribute("book", list);
-    	return "myBook";
+        List<MyBookList> list = bookListService.getAllBooks();
+        model.addAttribute("book", list);
+        return "myBook";
     }
-    
+
     @RequestMapping("myList/{id}")
-    public String getMyList(@PathVariable("id") int id){
-    	Books books = bookService.getBookById(id);
-    	MyBookList myBookList = new MyBookList(books.getName(), books.getAuthor(), books.getPrice());
-    	bookListService.saveMyBooks(myBookList);
-    	return "redirect:/my_book";
+    public String getMyList(@PathVariable("id") int id) {
+        Books books = bookService.getBookById(id);
+        MyBookList myBookList = new MyBookList(books.getName(), books.getAuthor(), books.getPrice());
+        bookListService.saveMyBooks(myBookList);
+        return "redirect:/my_book";
     }
-    
+
     @RequestMapping("/deleteMyList/{id}")
     public String deleteMyList(@PathVariable("id") int id) {
-    	bookListService.deleteById(id);
-    	return "redirect:/my_book";
+        bookListService.deleteById(id);
+        return "redirect:/my_book";
     }
-    
+
     @RequestMapping("/editBook/{id}")
     public String editBook(@PathVariable("id") int id, Model model) {
         Books books = bookService.getBookById(id);
