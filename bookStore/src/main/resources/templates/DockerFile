@@ -1,0 +1,21 @@
+# Use an official OpenJDK runtime as a parent image
+FROM openjdk:11-jre-slim
+
+# Set the working directory in the container
+WORKDIR /app
+
+# Copy the jar file from your local system into the container
+COPY target/bookStore-1.0-SNAPSHOT.jar /app/bookStore.jar
+
+# Expose the port your app runs on (e.g., 8080 for Spring Boot)
+EXPOSE 8080
+
+# Command to run your application
+ENTRYPOINT ["java", "-jar", "bookStore.jar"]
+
+# Optional: Add a health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD curl -f http://localhost:8080/actuator/health || exit 1
+
+# Add actuator dependency for health check
+RUN apt-get update && apt-get install -y curl
