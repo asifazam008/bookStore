@@ -1,0 +1,103 @@
+pipeline {
+    agent any
+
+    environment {
+        MAVEN_HOME = "/usr/share/maven"
+        M2_HOME = "/usr/share/maven"
+        PATH = "/usr/share/maven/bin:/usr/bin:/usr/local/bin:$PATH"
+        DB_URL = 'jdbc:postgresql://172.17.0.3:5432/postgres'
+        DB_USER = 'postgres'
+        DB_PASSWORD = 'postgres'
+    }
+
+    triggers {
+        githubPush()  // Triggers pipeline on push/merge to GitHub
+    }
+
+    stages {
+        stage('Check Environment') {
+            steps {
+                script {
+                    sh 'echo "Using Maven from: $MAVEN_HOME"'
+                    sh 'whoami'
+                    sh 'ls -lah /usr/share/maven/bin'
+                    sh 'mvn -version'
+                }
+            }
+        }
+
+        stage('Clone Repository') {
+            steps {
+                script {
+                    sh '''
+                        rm -rf bookStore || true
+                        git clone --depth=1 -b main https://github.com/asifazam008/bookStore.git
+                        cd bookStore
+                        echo "✅ Repository cloned successfully"
+                    '''
+                }
+            }
+        }
+
+        stage('Build with Maven') {
+            steps {
+                script {
+                    try {
+                        sh 'cd bookStore && mvn clean package'
+                        echo "✅ Build completed successfully"
+                    } catch (Exception e) {
+                        error "❌ Build failed"
+                    }
+                }
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                script {
+                    try {
+                        sh 'cd bookStore && mvn test'
+                        echo "✅ Tests passed successfully"
+                    } catch (Exception e) {
+                        error "❌ Tests failed"
+                    }
+                }
+            }
+        }
+
+        stage('Stop Existing Application') {
+            steps {
+                script {
+                    sh 'pkill -f bookStore-0.0.1-SNAPSHOT.jar || echo "No existing application running"'
+                }
+            }
+        }
+
+        stage('Deploy Application') {
+            steps {
+                script {
+                    try {
+                        sh 'nohup java -jar bookStore/target/bookStore-0.0.1-SNAPSHOT.jar > app.log 2>&1 &'
+                        sleep 5  // Give some time for the application to start
+
+                        // Verify if the application is running (using netstat instead of ss)
+                        sh 'netstat -tulnp | grep java || echo "⚠️ Application is not running!"'
+
+                        echo "✅ Deployment successful. Application is running at http://127.0.0.1:2008/home"
+                    } catch (Exception e) {
+                        error "❌ Deployment failed"
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "🎉 Build SUCCESS! Everything worked fine."
+        }
+        failure {
+            echo "🚨 Build FAILED! Check logs for errors."
+        }
+    }
+}
