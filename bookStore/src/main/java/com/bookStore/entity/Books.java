@@ -16,6 +16,7 @@ public class Books {
 	private Long id;
 	 
 	private String name;
+	private string email;
 	
 	private String author;
 	
