@@ -1,4 +1,4 @@
-package com.bookStore.controller;
+package com.bookstore.controller;
 
 import java.util.List;
 
@@ -8,18 +8,21 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
-import com.bookStore.entity.Books;
-import com.bookStore.entity.MyBookList;
-import com.bookStore.service.*;
+import com.bookstore.entity.Books;
+import com.bookstore.entity.MyBookList;
+import com.bookstore.service.*;
 
 @Controller
 public class BookController {
 
-    @Autowired
     private BookService bookService;
 
-    @Autowired
     private MyBookListService bookListService;
+
+    public BookController(BookService bookService, MyBookListService bookListService) {
+        this.bookService = bookService;
+        this.bookListService = bookListService;
+    }
 
     @GetMapping("/home")
     public String home() {

@@ -1,22 +1,23 @@
-package com.bookStore.service;
+package com.bookstore.service;
 
 import java.util.List;
 
-import javax.persistence.EntityNotFoundException;
+import jakarta.persistence.EntityNotFoundException;
 
-import com.bookStore.entity.Books;
+import com.bookstore.entity.Books;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.bookStore.entity.Books;
-import com.bookStore.repo.BookRepository;
+import com.bookstore.repo.BookRepository;
 
 @Service
 public class BookService {
 
-	@Autowired
 	private BookRepository bookRepository;
+
+	public BookService(BookRepository bookRepository) {
+		this.bookRepository = bookRepository;
+	}
 
 	public void save(Books books) {
 		bookRepository.save(books);
