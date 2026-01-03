@@ -21,21 +21,24 @@ pipeline {
             }
         }
 
+        stage('Verify Structure') {
+            steps {
+                sh '''
+                echo "Workspace: $WORKSPACE"
+                pwd
+                ls -la
+                echo "bookStore:"
+                ls -la bookStore
+                '''
+            }
+        }
+
         stage('Build & Test') {
             steps {
                 sh '''
-                echo "Building project inside Maven container..."
-
-                docker run --rm \
-                  -v "$WORKSPACE":/workspace \
-                  maven:3.9.6-eclipse-temurin-21 \
-                  bash -c "
-                    cd /workspace/bookStore && \
-                    ls -la && \
-                    mvn clean package -DskipTests
-                  "
-
-                ls -la "$WORKSPACE/bookStore/target"
+                cd bookStore
+                chmod +x mvnw
+                ./mvnw clean package -DskipTests
                 '''
             }
         }
@@ -43,8 +46,14 @@ pipeline {
         stage('Docker Build') {
             steps {
                 sh '''
-                echo "Building Docker image..."
-                cd "$WORKSPACE/bookStore"
+                cd bookStore
+
+                JAR=$(find target -name "*.jar" | head -1)
+                if [ -z "$JAR" ]; then
+                    echo "JAR not found"
+                    exit 1
+                fi
+
                 docker build -t $IMAGE_NAME .
                 '''
             }
@@ -53,10 +62,8 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
-                echo "Deploying application..."
-
-                docker network create bookstore-network || true
-                docker rm -f $CONTAINER_NAME || true
+                docker network create bookstore-network 2>/dev/null || true
+                docker rm -f $CONTAINER_NAME 2>/dev/null || true
 
                 docker run -d \
                   --name $CONTAINER_NAME \
@@ -65,7 +72,7 @@ pipeline {
                   -e SPRING_PROFILES_ACTIVE=docker \
                   $IMAGE_NAME
 
-                echo "Deployment complete"
+                sleep 10
                 docker ps | grep $CONTAINER_NAME
                 '''
             }
@@ -74,10 +81,10 @@ pipeline {
 
     post {
         success {
-            echo "CI/CD pipeline completed successfully 🎉"
+            echo '✅ Pipeline completed successfully!'
         }
         failure {
-            echo "Pipeline failed ❌"
+            echo '❌ Pipeline failed. Check logs above.'
         }
     }
 }
