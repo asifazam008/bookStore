@@ -9,15 +9,11 @@ pipeline {
 
     stages {
         stage('Clean Workspace') {
-            steps {
-                cleanWs()
-            }
+            steps { cleanWs() }
         }
 
         stage('Checkout') {
-            steps {
-                checkout scm
-            }
+            steps { checkout scm }
         }
 
         stage('Verify Structure') {
@@ -25,9 +21,7 @@ pipeline {
                 sh '''
                 echo "=== Workspace Structure ==="
                 echo "Workspace: $WORKSPACE"
-                echo "Current directory:"
                 pwd
-                echo "Listing contents:"
                 ls -la
                 echo "Looking for pom.xml:"
                 find . -name "pom.xml" -type f
@@ -42,14 +36,14 @@ pipeline {
                 sh '''
                 echo "Building project inside Maven container..."
 
-                # Ensure local m2 cache exists and is writable
+                # Prepare writable maven cache
                 mkdir -p "$WORKSPACE/.m2"
 
                 docker run --rm \
                   -u $(id -u):$(id -g) \
                   -v "$WORKSPACE/bookStore":/app \
-                  -v "$WORKSPACE/.m2":/home/jenkins/.m2 \
-                  -e MAVEN_CONFIG=/home/jenkins/.m2 \
+                  -v "$WORKSPACE/.m2":/tmp/.m2 \
+                  -e MAVEN_OPTS="-Dmaven.repo.local=/tmp/.m2" \
                   -w /app \
                   maven:3.9.6-eclipse-temurin-21 \
                   mvn clean package -DskipTests
@@ -78,10 +72,7 @@ pipeline {
                     exit 1
                 fi
 
-                echo "Dockerfile found. Building image..."
                 docker build --pull -t $IMAGE_NAME .
-
-                echo "Verifying Docker image:"
                 docker images $IMAGE_NAME
                 '''
             }
@@ -92,13 +83,9 @@ pipeline {
                 sh '''
                 echo "Deploying application..."
 
-                # Create network if it doesn't exist
                 docker network create bookstore-network 2>/dev/null || true
-
-                # Stop and remove existing container
                 docker rm -f $CONTAINER_NAME 2>/dev/null || true
 
-                # Run new container
                 docker run -d \
                   --name $CONTAINER_NAME \
                   --network bookstore-network \
@@ -106,14 +93,9 @@ pipeline {
                   -e SPRING_PROFILES_ACTIVE=docker \
                   $IMAGE_NAME
 
-                echo "Waiting for container to start..."
                 sleep 10
-
-                echo "Container status:"
                 docker ps --filter "name=$CONTAINER_NAME"
-
-                echo "Deployment complete!"
-                echo "Application should be available at: http://localhost:${APP_PORT}"
+                echo "Application available at: http://localhost:${APP_PORT}"
                 '''
             }
         }
@@ -121,42 +103,10 @@ pipeline {
 
     post {
         success {
-            echo 'Pipeline succeeded!'
-            sh '''
-                echo "=========================================="
-                echo "DEPLOYMENT SUCCESSFUL"
-                echo "=========================================="
-                echo "Application: $CONTAINER_NAME"
-                echo "URL: http://localhost:$APP_PORT"
-                echo "Health check: http://localhost:$APP_PORT/actuator/health"
-                echo ""
-                echo "Container status:"
-                docker ps --filter "name=$CONTAINER_NAME" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
-                echo "=========================================="
-            '''
+            echo "Pipeline succeeded — CI/CD completed successfully."
         }
         failure {
-            echo 'Pipeline failed!'
-            sh '''
-                echo "=========================================="
-                echo "DEPLOYMENT FAILED"
-                echo "=========================================="
-                echo "Debug information:"
-                echo "1. Recent containers:"
-                docker ps -a --last 5
-                echo ""
-                echo "2. Checking if Maven build succeeded:"
-                if [ -d "$WORKSPACE/bookStore/target" ]; then
-                    echo "Target directory exists:"
-                    ls -la "$WORKSPACE/bookStore/target/"
-                else
-                    echo "No target directory found"
-                fi
-                echo ""
-                echo "3. Docker images:"
-                docker images | head -10
-                echo "=========================================="
-            '''
+            echo "Pipeline failed — check logs above."
         }
     }
 }
