@@ -27,13 +27,14 @@ pipeline {
                 echo "Building project inside Maven container..."
 
                 docker run --rm \
-                  -v "$WORKSPACE/bookStore":/app \
-                  -v "$HOME/.m2":/root/.m2 \
-                  -w /app \
+                  -v "$WORKSPACE":/workspace \
                   maven:3.9.6-eclipse-temurin-21 \
-                  mvn clean package -DskipTests
+                  bash -c "
+                    cd /workspace/bookStore && \
+                    ls -la && \
+                    mvn clean package -DskipTests
+                  "
 
-                echo "Build finished"
                 ls -la "$WORKSPACE/bookStore/target"
                 '''
             }
