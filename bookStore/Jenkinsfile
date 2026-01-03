@@ -43,25 +43,14 @@ pipeline {
             steps {
                 sh '''
                     echo "Building project inside Maven container..."
-                    echo "Navigating to project directory: $PROJECT_DIR"
 
-                    # Build from the bookStore directory
                     docker run --rm \
+                      -u $(id -u):$(id -g) \
                       -v "$WORKSPACE/$PROJECT_DIR":/app \
                       -v /var/jenkins_home/.m2:/root/.m2 \
                       -w /app \
                       maven:3.9.6-eclipse-temurin-21 \
                       mvn clean package
-
-                    # Verify the build
-                    echo "Checking if build was successful..."
-                    if [ -d "$WORKSPACE/$PROJECT_DIR/target" ]; then
-                        echo "Build artifacts found:"
-                        ls -la "$WORKSPACE/$PROJECT_DIR/target/"
-                    else
-                        echo "ERROR: No target directory found!"
-                        exit 1
-                    fi
                 '''
             }
         }
