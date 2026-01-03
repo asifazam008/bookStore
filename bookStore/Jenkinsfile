@@ -2,33 +2,26 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "bookstore-app"
+        IMAGE_NAME     = "bookstore-app"
         CONTAINER_NAME = "bookstore-app"
-        APP_PORT = "2008"
-        PROJECT_DIR = "bookStore"
+        APP_PORT       = "2008"
+        PROJECT_DIR    = "bookStore"
     }
 
     stages {
-
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
 
         stage('Build & Test') {
             steps {
                 sh '''
                 docker run --rm \
-                  -v /var/jenkins_home/workspace/bookstore-ci/bookStore:/app \
-                  -v /var/jenkins_home/.m2:/root/.m2 \
+                  -v "$WORKSPACE/$PROJECT_DIR":/app \
+                  -v "$HOME/.m2":/root/.m2 \
                   -w /app \
                   maven:3.9.6-eclipse-temurin-21 \
                   mvn clean package
                 '''
             }
         }
-
 
         stage('Docker Build') {
             steps {
@@ -43,7 +36,6 @@ pipeline {
             steps {
                 sh '''
                 docker rm -f $CONTAINER_NAME || true
-
                 docker run -d \
                   --name $CONTAINER_NAME \
                   -p $APP_PORT:$APP_PORT \
