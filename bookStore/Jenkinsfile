@@ -5,7 +5,6 @@ pipeline {
         IMAGE_NAME     = "bookstore-app"
         CONTAINER_NAME = "bookstore-app"
         APP_PORT       = "2008"
-        PROJECT_DIR    = "bookStore"
     }
 
     stages {
@@ -25,10 +24,13 @@ pipeline {
         stage('Build & Test') {
             steps {
                 sh '''
+                echo "Workspace: $WORKSPACE"
+                ls -la
+
                 echo "Building project inside Maven container..."
 
                 docker run --rm \
-                  -v "$WORKSPACE/$PROJECT_DIR":/app \
+                  -v "$WORKSPACE":/app \
                   -v /var/jenkins_home/.m2:/root/.m2 \
                   -w /app \
                   maven:3.9.6-eclipse-temurin-21 \
@@ -41,7 +43,7 @@ pipeline {
             steps {
                 sh '''
                 echo "Building application Docker image..."
-                cd "$PROJECT_DIR"
+                cd "$WORKSPACE"
                 docker build --pull -t $IMAGE_NAME .
                 '''
             }
@@ -50,16 +52,31 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
+                echo "Deploying application..."
+
+                docker network create bookstore-network || true
+
                 docker rm -f $CONTAINER_NAME || true
 
                 docker run -d \
                   --name $CONTAINER_NAME \
                   --network bookstore-network \
-                  -p 2008:8080 \
+                  -p ${APP_PORT}:8080 \
                   -e SPRING_PROFILES_ACTIVE=docker \
                   $IMAGE_NAME
+
+                echo "Deployment complete"
                 '''
             }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed!'
         }
     }
 }
