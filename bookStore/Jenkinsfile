@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "bookstore-app"
+        IMAGE_NAME     = "bookstore-app"
         CONTAINER_NAME = "bookstore-app"
-        APP_PORT = "2008"
+        APP_PORT       = "2008"
     }
 
     stages {
@@ -19,9 +19,9 @@ pipeline {
             steps {
                 sh '''
                 docker run --rm \
-                  -v "$PWD":/app \
+                  -v "$WORKSPACE":/workspace \
                   -v "$HOME/.m2":/root/.m2 \
-                  -w /app \
+                  -w /workspace/bookStore \
                   maven:3.9.6-eclipse-temurin-21 \
                   mvn clean package
                 '''
@@ -31,7 +31,7 @@ pipeline {
         stage('Docker Build') {
             steps {
                 sh '''
-                docker build -t $IMAGE_NAME .
+                docker build -t $IMAGE_NAME bookStore
                 '''
             }
         }
@@ -40,6 +40,7 @@ pipeline {
             steps {
                 sh '''
                 docker rm -f $CONTAINER_NAME || true
+
                 docker run -d \
                   --name $CONTAINER_NAME \
                   --network ci-network \
