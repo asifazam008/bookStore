@@ -42,24 +42,18 @@ pipeline {
                 sh '''
                 echo "Building project inside Maven container..."
 
-                # Option 1: Run as root (simplest)
+                # Ensure local m2 cache exists and is writable
+                mkdir -p "$WORKSPACE/.m2"
+
                 docker run --rm \
+                  -u $(id -u):$(id -g) \
                   -v "$WORKSPACE/bookStore":/app \
-                  -v "$HOME/.m2":/root/.m2 \
+                  -v "$WORKSPACE/.m2":/home/jenkins/.m2 \
+                  -e MAVEN_CONFIG=/home/jenkins/.m2 \
                   -w /app \
                   maven:3.9.6-eclipse-temurin-21 \
                   mvn clean package -DskipTests
 
-                # OR Option 2: Use a user-writable directory
-                # docker run --rm \
-                #   -v "$WORKSPACE/bookStore":/app \
-                #   -v "$WORKSPACE/.m2":/home/jenkins/.m2 \
-                #   -w /app \
-                #   -u 1000:1000 \
-                #   maven:3.9.6-eclipse-temurin-21 \
-                #   mvn clean package -DskipTests
-
-                # Verify build
                 echo "Checking build results..."
                 if [ -d "$WORKSPACE/bookStore/target" ]; then
                     echo "Build successful! JAR files:"
