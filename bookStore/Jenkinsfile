@@ -19,17 +19,16 @@ pipeline {
         stage('Build & Test') {
             steps {
                 sh '''
-                cd $PROJECT_DIR
-
                 docker run --rm \
-                  -v "$PWD":/app \
-                  -v "$HOME/.m2":/root/.m2 \
+                  -v /var/jenkins_home/workspace/bookstore-ci/bookStore:/app \
+                  -v /var/jenkins_home/.m2:/root/.m2 \
                   -w /app \
                   maven:3.9.6-eclipse-temurin-21 \
                   mvn clean package
                 '''
             }
         }
+
 
         stage('Docker Build') {
             steps {
