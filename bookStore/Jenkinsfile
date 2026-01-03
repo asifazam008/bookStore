@@ -4,7 +4,7 @@ pipeline {
     environment {
         IMAGE_NAME = "bookstore-app"
         CONTAINER_NAME = "bookstore-app"
-        NETWORK = "ci-network"
+        DOCKER_NETWORK = "ci-network"
     }
 
     stages {
@@ -16,6 +16,12 @@ pipeline {
         }
 
         stage('Build & Test') {
+            agent {
+                docker {
+                    image 'maven:3.9.6-eclipse-temurin-21'
+                    args '-v /root/.m2:/root/.m2'
+                }
+            }
             steps {
                 sh 'mvn clean package'
             }
@@ -31,9 +37,22 @@ pipeline {
             steps {
                 sh '''
                 docker rm -f $CONTAINER_NAME || true
-                docker run -d --name $CONTAINER_NAME --network $NETWORK -p 2008:2008 $IMAGE_NAME
+                docker run -d \
+                  --name $CONTAINER_NAME \
+                  --network $DOCKER_NETWORK \
+                  -p 2008:8080 \
+                  $IMAGE_NAME
                 '''
             }
+        }
+    }
+
+    post {
+        success {
+            echo "🚀 Pipeline completed successfully!"
+        }
+        failure {
+            echo "❌ Pipeline failed. Check logs."
         }
     }
 }
