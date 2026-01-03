@@ -29,7 +29,7 @@ pipeline {
 
                 docker run --rm \
                   -v "$WORKSPACE/$PROJECT_DIR":/app \
-                  -v "$HOME/.m2":/root/.m2 \
+                  -v /var/jenkins_home/.m2:/root/.m2 \
                   -w /app \
                   maven:3.9.6-eclipse-temurin-21 \
                   mvn clean package
@@ -42,7 +42,7 @@ pipeline {
                 sh '''
                 echo "Building application Docker image..."
                 cd "$PROJECT_DIR"
-                docker build -t $IMAGE_NAME .
+                docker build --pull -t $IMAGE_NAME .
                 '''
             }
         }
@@ -50,13 +50,13 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
-                echo "Deploying application container..."
-
                 docker rm -f $CONTAINER_NAME || true
 
                 docker run -d \
                   --name $CONTAINER_NAME \
-                  -p $APP_PORT:$APP_PORT \
+                  --network bookstore-network \
+                  -p 2008:8080 \
+                  -e SPRING_PROFILES_ACTIVE=docker \
                   $IMAGE_NAME
                 '''
             }
