@@ -8,26 +8,16 @@ pipeline {
     }
 
     stages {
+
         stage('Clean Workspace') {
-            steps { cleanWs() }
+            steps {
+                cleanWs()
+            }
         }
 
         stage('Checkout') {
-            steps { checkout scm }
-        }
-
-        stage('Verify Structure') {
             steps {
-                sh '''
-                echo "=== Workspace Structure ==="
-                echo "Workspace: $WORKSPACE"
-                pwd
-                ls -la
-                echo "Looking for pom.xml:"
-                find . -name "pom.xml" -type f
-                echo "Looking for Dockerfile:"
-                find . -name "Dockerfile" -type f
-                '''
+                checkout scm
             }
         }
 
@@ -36,26 +26,15 @@ pipeline {
                 sh '''
                 echo "Building project inside Maven container..."
 
-                # Prepare writable maven cache
-                mkdir -p "$WORKSPACE/.m2"
-
                 docker run --rm \
-                  -u $(id -u):$(id -g) \
                   -v "$WORKSPACE/bookStore":/app \
-                  -v "$WORKSPACE/.m2":/tmp/.m2 \
-                  -e MAVEN_OPTS="-Dmaven.repo.local=/tmp/.m2" \
+                  -v "$HOME/.m2":/root/.m2 \
                   -w /app \
                   maven:3.9.6-eclipse-temurin-21 \
                   mvn clean package -DskipTests
 
-                echo "Checking build results..."
-                if [ -d "$WORKSPACE/bookStore/target" ]; then
-                    echo "Build successful! JAR files:"
-                    find "$WORKSPACE/bookStore/target" -name "*.jar" -type f
-                else
-                    echo "ERROR: Build failed - no target directory"
-                    exit 1
-                fi
+                echo "Build finished"
+                ls -la "$WORKSPACE/bookStore/target"
                 '''
             }
         }
@@ -63,17 +42,9 @@ pipeline {
         stage('Docker Build') {
             steps {
                 sh '''
-                echo "Building application Docker image..."
+                echo "Building Docker image..."
                 cd "$WORKSPACE/bookStore"
-
-                if [ ! -f "Dockerfile" ]; then
-                    echo "ERROR: Dockerfile not found!"
-                    ls -la
-                    exit 1
-                fi
-
-                docker build --pull -t $IMAGE_NAME .
-                docker images $IMAGE_NAME
+                docker build -t $IMAGE_NAME .
                 '''
             }
         }
@@ -83,8 +54,8 @@ pipeline {
                 sh '''
                 echo "Deploying application..."
 
-                docker network create bookstore-network 2>/dev/null || true
-                docker rm -f $CONTAINER_NAME 2>/dev/null || true
+                docker network create bookstore-network || true
+                docker rm -f $CONTAINER_NAME || true
 
                 docker run -d \
                   --name $CONTAINER_NAME \
@@ -93,9 +64,8 @@ pipeline {
                   -e SPRING_PROFILES_ACTIVE=docker \
                   $IMAGE_NAME
 
-                sleep 10
-                docker ps --filter "name=$CONTAINER_NAME"
-                echo "Application available at: http://localhost:${APP_PORT}"
+                echo "Deployment complete"
+                docker ps | grep $CONTAINER_NAME
                 '''
             }
         }
@@ -103,10 +73,10 @@ pipeline {
 
     post {
         success {
-            echo "Pipeline succeeded — CI/CD completed successfully."
+            echo "CI/CD pipeline completed successfully 🎉"
         }
         failure {
-            echo "Pipeline failed — check logs above."
+            echo "Pipeline failed ❌"
         }
     }
 }
