@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    triggers {
+        githubPush()
+    }
+
     environment {
         IMAGE_NAME     = "bookstore-app"
         CONTAINER_NAME = "bookstore-app"
