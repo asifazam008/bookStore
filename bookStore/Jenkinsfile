@@ -39,13 +39,11 @@ pipeline {
             steps {
                 sh '''
                 cd bookStore
-
                 JAR=$(find target -name "*.jar" | head -1)
                 if [ -z "$JAR" ]; then
                     echo "JAR not found"
                     exit 1
                 fi
-
                 docker build -t $IMAGE_NAME .
                 '''
             }
