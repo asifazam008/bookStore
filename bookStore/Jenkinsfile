@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    options {
-        skipDefaultCheckout(true)
-    }
-
     triggers {
         githubPush()
     }
@@ -16,12 +12,6 @@ pipeline {
     }
 
     stages {
-
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
 
         stage('Verify Structure') {
             steps {
