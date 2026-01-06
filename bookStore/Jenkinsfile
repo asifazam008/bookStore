@@ -65,17 +65,22 @@ pipeline {
         stage('Health Check') {
             steps {
                 sh '''
-                echo "Waiting for application to start..."
-                sleep 15
+                echo "Waiting for application to become healthy..."
 
-                STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:${APP_PORT}/actuator/health || true)
+                for i in {1..12}; do
+                    STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:${APP_PORT}/actuator/health || true)
 
-                if [ "$STATUS" != "200" ]; then
-                    echo "❌ Health check failed with status $STATUS"
-                    exit 1
-                fi
+                    if [ "$STATUS" = "200" ]; then
+                        echo "✅ Application is healthy"
+                        exit 0
+                    fi
 
-                echo "✅ Application is healthy"
+                    echo "Attempt $i: not ready yet (status=$STATUS)..."
+                    sleep 10
+                done
+
+                echo "❌ Health check failed after multiple attempts"
+                exit 1
                 '''
             }
         }
