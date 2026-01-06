@@ -12,3 +12,14 @@ spring:
     hibernate:
       ddl-auto: update
     open-in-view: false
+
+    management:
+      server:
+        port: 8080
+      endpoints:
+        web:
+          exposure:
+            include: health,info
+      endpoint:
+        health:
+          show-details: always

@@ -68,13 +68,11 @@ pipeline {
                 echo "Waiting for application to become healthy..."
 
                 for i in {1..12}; do
-                    STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:${APP_PORT}/actuator/health || true)
-
+                    STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://bookstore-app:8080/actuator/health || true)
                     if [ "$STATUS" = "200" ]; then
                         echo "✅ Application is healthy"
                         exit 0
                     fi
-
                     echo "Attempt $i: not ready yet (status=$STATUS)..."
                     sleep 10
                 done
