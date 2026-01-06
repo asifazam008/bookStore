@@ -47,18 +47,26 @@ pipeline {
                 sh '''
                 docker network create bookstore-network 2>/dev/null || true
 
-                PREVIOUS=$(docker ps -q --filter "name=${CONTAINER_NAME}")
-
-                if [ ! -z "$PREVIOUS" ]; then
-                    docker stop $CONTAINER_NAME
-                    docker rename $CONTAINER_NAME ${CONTAINER_NAME}_backup || true
+                # Remove any old backup
+                if docker ps -a --format '{{.Names}}' | grep -q '^bookstore-app_backup$'; then
+                  echo "Removing old backup..."
+                  docker rm -f bookstore-app_backup
                 fi
 
-                docker run -d --name $CONTAINER_NAME \
+                # If current app exists, stop & rename it
+                if docker ps -a --format '{{.Names}}' | grep -q '^bookstore-app$'; then
+                  echo "Stopping current container..."
+                  docker stop bookstore-app || true
+                  docker rename bookstore-app bookstore-app_backup
+                fi
+
+                echo "Starting new container..."
+                docker run -d \
+                  --name bookstore-app \
                   --network bookstore-network \
-                  -p ${APP_PORT}:8080 \
+                  -p 2008:8080 \
                   -e SPRING_PROFILES_ACTIVE=docker \
-                  $IMAGE_NAME
+                  bookstore-app
                 '''
             }
         }
