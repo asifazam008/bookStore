@@ -50,6 +50,7 @@ pipeline {
                 PREVIOUS=$(docker ps -q --filter "name=${CONTAINER_NAME}")
 
                 if [ ! -z "$PREVIOUS" ]; then
+                    docker stop $CONTAINER_NAME
                     docker rename $CONTAINER_NAME ${CONTAINER_NAME}_backup || true
                 fi
 
