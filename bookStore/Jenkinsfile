@@ -9,7 +9,9 @@ pipeline {
         IMAGE_NAME     = "bookstore-app"
         CONTAINER_NAME = "bookstore-app"
         APP_PORT       = "2008"
+        BUILD_TAG      = "${env.BUILD_NUMBER}"
     }
+
 
     stages {
 
@@ -37,7 +39,8 @@ pipeline {
             steps {
                 sh '''
                 cd bookStore
-                docker build -t $IMAGE_NAME .
+                docker build -t ${IMAGE_NAME}:${BUILD_TAG} .
+                docker tag ${IMAGE_NAME}:${BUILD_TAG} ${IMAGE_NAME}:latest
                 '''
             }
         }
@@ -47,26 +50,24 @@ pipeline {
                 sh '''
                 docker network create bookstore-network 2>/dev/null || true
 
-                # Remove any old backup
+                # Clean old backup
                 if docker ps -a --format '{{.Names}}' | grep -q '^bookstore-app_backup$'; then
-                  echo "Removing old backup..."
                   docker rm -f bookstore-app_backup
                 fi
 
-                # If current app exists, stop & rename it
+                # Backup running container
                 if docker ps -a --format '{{.Names}}' | grep -q '^bookstore-app$'; then
-                  echo "Stopping current container..."
                   docker stop bookstore-app || true
                   docker rename bookstore-app bookstore-app_backup
                 fi
 
-                echo "Starting new container..."
+                # Deploy new version
                 docker run -d \
                   --name bookstore-app \
                   --network bookstore-network \
                   -p 2008:8080 \
                   -e SPRING_PROFILES_ACTIVE=docker \
-                  bookstore-app
+                  ${IMAGE_NAME}:${BUILD_TAG}
                 '''
             }
         }
@@ -104,12 +105,14 @@ pipeline {
             sh '''
             echo "⚠️ Deployment failed — rolling back"
 
-            docker rm -f ${CONTAINER_NAME} || true
+            docker rm -f bookstore-app || true
 
-            if docker ps -a | grep ${CONTAINER_NAME}_backup; then
-                docker rename ${CONTAINER_NAME}_backup ${CONTAINER_NAME}
-                docker start ${CONTAINER_NAME}
-                echo "♻️ Rollback completed"
+            if docker ps -a --format '{{.Names}}' | grep -q '^bookstore-app_backup$'; then
+              docker rename bookstore-app_backup bookstore-app
+              docker start bookstore-app
+              echo "♻️ Rollback completed"
+            else
+              echo "❌ No backup found to roll back"
             fi
             '''
         }
