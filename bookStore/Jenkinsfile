@@ -101,28 +101,38 @@ pipeline {
     }
 
     post {
-        failure {
-            sh '''
-            echo "⚠️ Deployment failed — rolling back"
 
-            docker rm -f bookstore-app || true
-
-            if docker ps -a --format '{{.Names}}' | grep -q '^bookstore-app_backup$'; then
-              docker rename bookstore-app_backup bookstore-app
-              docker start bookstore-app
-              echo "♻️ Rollback completed"
-            else
-              echo "❌ No backup found to roll back"
-            fi
-            '''
+        always {
+            echo "🧹 Cleaning workspace..."
+            cleanWs()
         }
 
         success {
-            echo '✅ Pipeline completed successfully!'
+            emailext(
+                subject: "✅ SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """
+                    <h2>Build Successful</h2>
+                    <p><b>Job:</b> ${env.JOB_NAME}</p>
+                    <p><b>Build:</b> #${env.BUILD_NUMBER}</p>
+                    <p><b>Deployed Image:</b> bookstore-app:${env.BUILD_NUMBER}</p>
+                    <p><b>Status:</b> SUCCESS</p>
+                """,
+                to: "asifazam789@gmail.com"
+            )
         }
 
-        always {
-            cleanWs()
+        failure {
+            emailext(
+                subject: "❌ FAILURE: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """
+                    <h2>Build Failed</h2>
+                    <p><b>Job:</b> ${env.JOB_NAME}</p>
+                    <p><b>Build:</b> #${env.BUILD_NUMBER}</p>
+                    <p><b>Status:</b> FAILED</p>
+                    <p>Check Jenkins console for details.</p>
+                """,
+                to: "asifazam789@gmail.com"
+            )
         }
     }
 }
