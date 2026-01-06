@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    options {
+        skipDefaultCheckout(true)
+    }
+
     triggers {
         githubPush()
     }
@@ -12,14 +16,11 @@ pipeline {
     }
 
     stages {
-
         stage('Verify Structure') {
             steps {
                 sh '''
-                echo "Workspace: $WORKSPACE"
                 pwd
                 ls -la
-                echo "bookStore:"
                 ls -la bookStore
                 '''
             }
@@ -39,11 +40,6 @@ pipeline {
             steps {
                 sh '''
                 cd bookStore
-                JAR=$(find target -name "*.jar" | head -1)
-                if [ -z "$JAR" ]; then
-                    echo "JAR not found"
-                    exit 1
-                fi
                 docker build -t $IMAGE_NAME .
                 '''
             }
@@ -61,20 +57,8 @@ pipeline {
                   -p ${APP_PORT}:8080 \
                   -e SPRING_PROFILES_ACTIVE=docker \
                   $IMAGE_NAME
-
-                sleep 10
-                docker ps | grep $CONTAINER_NAME
                 '''
             }
-        }
-    }
-
-    post {
-        success {
-            echo '✅ Pipeline completed successfully!'
-        }
-        failure {
-            echo '❌ Pipeline failed. Check logs above.'
         }
     }
 }
