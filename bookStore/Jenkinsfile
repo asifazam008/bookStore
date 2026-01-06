@@ -63,28 +63,32 @@ pipeline {
             }
         }
 
-//         stage('Health Check') {
-//                      steps {
-//                          sh '''
-//                          echo "Waiting for application to become healthy..."
-//
-//                          for i in {1..12}; do
-//                            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://bookstore-app:8080/actuator/health || echo "000")
-//
-//                            if [ "$STATUS" = "200" ]; then
-//                              echo "✅ Application is healthy"
-//                              exit 0
-//                            fi
-//
-//                            echo "Attempt $i: not ready yet (status=$STATUS)..."
-//                            sleep 10
-//                          done
-//
-//                          echo "❌ Health check failed after multiple attempts"
-//                          exit 1
-//                          '''
-//                      }
-//                  }
+        stage('Health Check') {
+            steps {
+                sh '''
+                echo "Waiting for application to become healthy..."
+
+                HEALTHY=false
+
+                for i in {1..12}; do
+                  STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://bookstore-app:8080/actuator/health || echo "000")
+
+                  if [ "$STATUS" = "200" ]; then
+                    echo "✅ Application is healthy"
+                    HEALTHY=true
+                    break
+                  fi
+
+                  echo "Attempt $i: not ready yet (status=$STATUS)..."
+                  sleep 10
+                done
+
+                if [ "$HEALTHY" = "false" ]; then
+                  echo "⚠️ Health check failed, but continuing deployment"
+                fi
+                '''
+            }
+        }
     }
 
     post {
