@@ -16,6 +16,13 @@ pipeline {
     }
 
     stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
         stage('Verify Structure') {
             steps {
                 sh '''
@@ -49,16 +56,62 @@ pipeline {
             steps {
                 sh '''
                 docker network create bookstore-network 2>/dev/null || true
-                docker rm -f $CONTAINER_NAME 2>/dev/null || true
 
-                docker run -d \
-                  --name $CONTAINER_NAME \
+                PREVIOUS=$(docker ps -q --filter "name=${CONTAINER_NAME}")
+
+                if [ ! -z "$PREVIOUS" ]; then
+                    docker rename $CONTAINER_NAME ${CONTAINER_NAME}_backup || true
+                fi
+
+                docker run -d --name $CONTAINER_NAME \
                   --network bookstore-network \
                   -p ${APP_PORT}:8080 \
                   -e SPRING_PROFILES_ACTIVE=docker \
                   $IMAGE_NAME
                 '''
             }
+        }
+
+        stage('Health Check') {
+            steps {
+                sh '''
+                echo "Waiting for application to start..."
+                sleep 15
+
+                STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:${APP_PORT}/actuator/health || true)
+
+                if [ "$STATUS" != "200" ]; then
+                    echo "❌ Health check failed with status $STATUS"
+                    exit 1
+                fi
+
+                echo "✅ Application is healthy"
+                '''
+            }
+        }
+    }
+
+    post {
+        failure {
+            sh '''
+            echo "⚠️ Deployment failed — rolling back"
+
+            docker rm -f ${CONTAINER_NAME} || true
+
+            if docker ps -a | grep ${CONTAINER_NAME}_backup; then
+                docker rename ${CONTAINER_NAME}_backup ${CONTAINER_NAME}
+                docker start ${CONTAINER_NAME}
+                echo "♻️ Rollback completed"
+            fi
+            '''
+        }
+
+        success {
+            echo '✅ Pipeline completed successfully!'
+        }
+
+        always {
+            cleanWs()
         }
     }
 }
